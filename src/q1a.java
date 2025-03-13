@@ -30,9 +30,13 @@ public class q1a {
     // Thread safe read operation
     public Object get(int i) {
         
-        if(i == size)
-            this.extend();
+        // Ensure size check and potential extension appear atomic
+        synchronized(this) {
+            if(i == size)
+                this.extend();
+        }
 
+        // Acquire the corresponding chunk's lock, then read
         locks[getLockIndex(i)].lock();
         try {
             return arr[i];
@@ -44,9 +48,13 @@ public class q1a {
     // Thread safe write operation
     public void set(int i, Object o) {
 
-        if(i == size)
-            this.extend();
+        // Ensure size check and potential extension appear atomic
+        synchronized(this) {
+            if(i == size)
+                this.extend();
+        }
         
+        // Acquire the corresponding chunk's lock, then write
         locks[getLockIndex(i)].lock();
         try {
             this.arr[i] = o;
@@ -55,19 +63,19 @@ public class q1a {
         }
     }
 
+    // Extend the array with 10 new null Objects, and extend the lock array if necessary
     private void extend() {
 
         // Acquire all locks in ascending order
         for(ReentrantLock l : locks)
             l.lock();
 
-        // Extend size by 10, copying all data and locks over. Locks are copied by reference
-        // which prevents other threads waiting on the lock from getting lost.
         try {
             this.size+=10;
             Object[] new_arr = new Object[size];
 
-            // If necessary, extend the locks array
+            // If necessary, extend the locks array. Locks are copied by reference
+            // which prevents other threads waiting on the lock from getting lost.
             if(getLockIndex(size)+1 > locks.length) {
                 ReentrantLock[] new_locks = new ReentrantLock[getNumLocks(size)];
                 for(int i=0; i<locks.length; i++)                  // Copy old locks

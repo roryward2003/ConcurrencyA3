@@ -1,7 +1,9 @@
 import java.util.concurrent.ThreadLocalRandom;
 
+// Driver class for testing my q1a and q1b implementations
+
 public class q1 {
-    
+
     public static void main(String[] args) {
 
         // Local vars for timing and input params
