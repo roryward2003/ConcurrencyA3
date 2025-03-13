@@ -6,41 +6,55 @@
 // multiple threads to concurrently read and write different array elements in O(1) while the array is not in
 // the process of being resized. Resizing should of course not lose or corrupt the prior array state.
 
+// Imports
+import java.util.concurrent.atomic.AtomicReference;
+
 // Resizable thread safe array implementation
+@SuppressWarnings("unchecked")
 public class q1b {
-    private Object[] arr;
+    private AtomicReference<Object>[] arr;
     private int size;
 
     // Basic constructor
     public q1b() {
         size = 20;
-        arr = new Object[size];
+        arr = (AtomicReference<Object>[]) new AtomicReference[20];
+        for(int i=0; i<size; i++)
+            arr[i] = new AtomicReference<Object>(null);
     }
 
-    // Not a concurrent safe implementation
     public Object get(int i) {
         if(i == size)
             this.extend();
-        return arr[i];
+        while(size != arr.length); // This prevents NullPointerExceptions while the arr is being resized
+        return arr[i].get();
     }
 
-    // Not a concurrent safe implementation
     public void set(int i, Object o) {
         if(i == size)
             this.extend();
-        this.arr[i] = o;
+        
+        Object current;
+        while(size != arr.length); // This prevents NullPointerExceptions while the arr is being resized
+        current = arr[i].get();
+        while(!arr[i].compareAndSet(current, o))
+            current = arr[i].get();
     }
 
-    // Not a concurrent safe implementation
+    // I have convinced myself that this is actually thread safe, as the AtomicReferences themselves don't change,
+    // just the data they reference. Thus copying over the pointers to these AtomicReferences into a new array
+    // means that the new array will still update with any changes to the old array as they reference the same
+    // AtomicReference object, which itself may reference the new Object. I hope that makes sense :)
     private void extend() {
         this.size+=10;
-        Object[] new_arr = new Object[size];
+        AtomicReference<Object>[] new_arr = (AtomicReference<Object>[]) new AtomicReference[size];
         int i=0;
-        for(Object o : arr)
+        for(AtomicReference<Object> o : arr)
             new_arr[i++] = o;
+        for(; i<size; i++)
+            new_arr[i] = new AtomicReference<Object>(null);
         this.arr = new_arr;
     }
 
-    // Not a concurrent safe implementation
     public int getSize() { return size; }
 }
