@@ -1,62 +1,74 @@
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-// This approach must use lock-free methods, by ensuring all array access appears atomic
-// through the use of hardware primitives (CAS, TS, FA) from the java.util.concurrent.atomic
-// package. There must be no blocking, and no data races.
+// Resizable thread safe array implementation, using only lock-free methods.
 
-// Your designs do not necessarily have to allow all n values to be accessed concurrently, but should allow
-// multiple threads to concurrently read and write different array elements in O(1) while the array is not in
-// the process of being resized. Resizing should of course not lose or corrupt the prior array state.
+// For clarity: arrRef is an atomic reference to an array of atomic references,
+// each of which references an Object. This allows reads and writes of
+// individual elements, and also allows the array resizing, to appear atomic.
 
-// Resizable thread safe array implementation
 @SuppressWarnings("unchecked")
 public class q1b {
-    private AtomicReference<Object>[] arr;
-    private AtomicInteger size;
 
-    // Basic constructor
+    // Private data
+    private AtomicReference<AtomicReference<Object>[]> arrRef;
+
+    // Constructor creates an array of atomic references to objects, and
+    // stores an atomic reference to this array in the arrRef variable.
     public q1b() {
-        size = new AtomicInteger(20);
-        arr = (AtomicReference<Object>[]) new AtomicReference[size.get()];
-        for(int i=0; i<size.get(); i++)
-            arr[i] = new AtomicReference<Object>(null);
+
+        arrRef = new AtomicReference<AtomicReference<Object>[]>();
+        arrRef.set(new AtomicReference[20]);
+        for(int i=0; i<20; i++)
+            arrRef.get()[i] = new AtomicReference<Object>(null);
     }
 
+    // Get object from index i, extending if i is one beyond the array limit
     public Object get(int i) {
-        if(arr.length==i && size.compareAndSet(i, i+10))
-            this.extend();
 
-        return arr[i].get();
+        // Extend the array in a way that appears atomic. If another thread has extended
+        // in between then this overlapped and unnecessary extension is abandoned.
+        if(arrRef.get().length == i) {
+            AtomicReference<Object>[] expected = arrRef.get();
+            arrRef.compareAndSet(expected, extend(expected));
+        }
+        return arrRef.get()[i].get();
     }
 
+    // Set an object at index i, extending if i is one beyond the array limit
     public void set(int i, Object o) {
-        if(arr.length==i && size.compareAndSet(i, i+10))
-            this.extend();
 
-        AtomicReference<Object> ref = arr[i];
-        Object current = ref.get();
-        while(!arr[i].compareAndSet(current, o))
-            current = ref.get();
+        // Extend the array in a way that appears atomic. If another thread has extended
+        // in between then this overlapped and unnecessary extension is abandoned.
+        if(arrRef.get().length == i) {
+            AtomicReference<Object>[] expected = arrRef.get();
+            arrRef.compareAndSet(expected, extend(expected));
+        }
+
+        // Set o at index i using a CAS operation
+        AtomicReference<Object> objRef = arrRef.get()[i];
+        Object current = objRef.get();
+        while(!objRef.compareAndSet(current, o))
+            current = objRef.get();
     }
 
-    // This is thread safe, as the AtomicReferences themselves don't change, just the
-    // data they reference. Copying over the pointers to these AtomicReferences into a
-    // new array means that the new array will still update with any changes to the old
-    // array as they reference the same AtomicReference object, which itself can reference
-    // the new Object. I hope that makes sense :)
-    private void extend() {
-        AtomicReference<Object>[] new_arr = (AtomicReference<Object>[]) new AtomicReference[size.get()];
+    // Return an extended copy of the old array. This extended copy is a new array, containing
+    // pointers to the same object references as the old array. Because the references themselves
+    // are the same, updates that occur during resizing will still be reflected in the new array.
+    //
+    // Importantly, the caller will decide if this extension is valid or not using a CAS operation,
+    // which is what allows this entire array resizing process to appear atomic to all other threads.
+    private AtomicReference<Object>[] extend(AtomicReference<Object>[] expected) {
+
+        // Create the new array
+        AtomicReference<Object>[] new_arr = (AtomicReference<Object>[]) new AtomicReference[expected.length+10];
         int i=0;
-        for(AtomicReference<Object> o : arr)
+        for(AtomicReference<Object> o : expected) // Copy over the old array's contents
             new_arr[i++] = o;
-        for(; i<size.get(); i++)
+        for(; i<expected.length+10; i++)          // Pad the rest with new references to null objects
             new_arr[i] = new AtomicReference<Object>(null);
-        arr = new_arr;
+        return new_arr;                           // Return the new extended array
     }
 
-    public int getSize() {
-        while(!size.compareAndSet(arr.length, size.get()));
-        return size.get();
-    }
+    // Get the current array size (for the q1.java driver program to use)
+    public int getSize() { return arrRef.get().length; }
 }

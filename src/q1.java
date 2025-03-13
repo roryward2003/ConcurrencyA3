@@ -1,7 +1,10 @@
 import java.util.concurrent.ThreadLocalRandom;
 
 public class q1 {
+    
     public static void main(String[] args) {
+
+        // Local vars for timing and input params
         long timeBefore, timeAfter;
         int k = Integer.parseInt(args[0]);
         int m = Integer.parseInt(args[1]);
@@ -29,7 +32,6 @@ public class q1 {
             t.run();
         timeAfter = System.currentTimeMillis();
         System.out.println("q1b execution time: "+(timeAfter-timeBefore)+"ms");
-
     }   
 }
 

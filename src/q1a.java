@@ -1,13 +1,16 @@
 import java.util.concurrent.locks.ReentrantLock;
 
-// Resizable thread safe array implementation using log(n) data to control
-// syncronisation. The base for this log is the constant defined below.
+// Resizable thread safe array implementation using blocking synchronisation,
+// controlled by log(n) locks. The base for this log is the constant defined below.
 
 // Elements in different chunks can be accessed concurrently, where chunks are
 // each controlled by one lock. For example, for log base 2 the chunks would be
 // [0-1] [2-3] [4-7] [8-15] [16-31]... This offers a nice trade off between
 // performace and memory usage, whilst still remaining relatively simple.
+
 public class q1a {
+
+    // Private data
     private static final double LOG_BASE = 2.0;
     private Object[] arr;
     private ReentrantLock[] locks;
@@ -16,6 +19,7 @@ public class q1a {
     // Basic contructor initialses an object array of length 20, and a lock
     // array of length log(20)(rounded down) + 1
     public q1a() {
+
         size = 20;
         arr = new Object[size];
         locks = new ReentrantLock[getNumLocks(size)];
@@ -25,6 +29,7 @@ public class q1a {
 
     // Thread safe read operation
     public Object get(int i) {
+        
         if(i == size)
             this.extend();
 
@@ -38,6 +43,7 @@ public class q1a {
 
     // Thread safe write operation
     public void set(int i, Object o) {
+
         if(i == size)
             this.extend();
         
@@ -50,6 +56,7 @@ public class q1a {
     }
 
     private void extend() {
+
         // Acquire all locks in ascending order
         for(ReentrantLock l : locks)
             l.lock();
@@ -91,12 +98,14 @@ public class q1a {
 
     // Calculate the number of locks needed for a given number of Objects
     private static int getNumLocks(int n) {
+
         if(n==0) return 0;
         return (int)Math.ceil(Math.log(n)/Math.log(LOG_BASE));
     }
 
     // Calculate the lock index given an array index
     private static int getLockIndex(int i) {
+
         if(i==0) return 0;
         return (int)Math.floor(Math.log(i)/Math.log(LOG_BASE));
     }
