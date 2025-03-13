@@ -39,6 +39,8 @@ public class q1 {
 
 // This class tests a q1a resizable array implementation
 class q1aTester implements Runnable {
+    
+    // Private variables
     private q1a arr;
     private ThreadLocalRandom rng;
     private int k;
@@ -73,6 +75,8 @@ class q1aTester implements Runnable {
 
 // This class tests a q1b resizable array implementation
 class q1bTester implements Runnable {
+
+    // Private variables
     private q1b arr;
     private ThreadLocalRandom rng;
     private int k;
