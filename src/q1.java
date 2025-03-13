@@ -58,13 +58,10 @@ class q1aTester implements Runnable {
                 else
                     arr.get(rng.nextInt(arr.getSize()));
             } else {                               // Access one past the end of the array
-                // This synchronisation blocks all other arr access, to ensure that checking the
-                // size of the array, then accessing one past the end appears atomic to other threads
-                // that are also trying to access one past the end, so resizes are never missed.
                 if(rng.nextInt(2) == 0)
-                    synchronized(arr) { arr.set(arr.getSize(), new Object()); }
+                    arr.set(arr.getSize(), new Object());
                 else
-                    synchronized(arr) { arr.get(arr.getSize()); }
+                    arr.get(arr.getSize());
             }
         }
     }
@@ -95,13 +92,10 @@ class q1bTester implements Runnable {
                 else
                     arr.get(rng.nextInt(arr.getSize()));
             } else {                               // Access one past the end of the array
-                // This synchronisation blocks all other arr access, to ensure that checking the
-                // size of the array, then accessing one past the end appears atomic to other threads
-                // that are also trying to access one past the end, so resizes are never missed.
                 if(rng.nextInt(2) == 0)
-                    synchronized(arr) { arr.set(arr.getSize(), new Object()); }
+                    arr.set(arr.getSize(), new Object());
                 else
-                    synchronized(arr) { arr.get(arr.getSize()); }
+                    arr.get(arr.getSize());
             }
         }
     }
