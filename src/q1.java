@@ -1,4 +1,5 @@
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 
 // Driver class for testing my q1a and q1b implementations
 
@@ -14,11 +15,11 @@ public class q1 {
         // Initialise two four-thread arrays, to test q1a and q1b respectively
         Thread[] tA = new Thread[4];
         Thread[] tB = new Thread[4];
-        q1a arrA = new q1a();
-        q1b arrB = new q1b();
+        q1aTester a = new q1aTester(new q1a(), k, m);
+        q1bTester b = new q1bTester(new q1b(), k, m);
         for(int i=0; i<4; i++) {
-            tA[i] = new Thread(new q1aTester(arrA, k, m));
-            tB[i] = new Thread(new q1bTester(arrB, k, m));
+            tA[i] = new Thread(a);
+            tB[i] = new Thread(b);
         }
 
         // Time the execution of all threads in tA
@@ -60,14 +61,14 @@ class q1aTester implements Runnable {
         for(int i=0; i<m; i++) {
             if(rng.nextInt(100) >= k) {      // Access any normal part of the array
                 if(rng.nextInt(2) == 0)
-                    arr.set(rng.nextInt(arr.getSize()), new Object());
+                    synchronized(this) { arr.set(rng.nextInt(arr.getSize()), new Object()); }
                 else
-                    arr.get(rng.nextInt(arr.getSize()));
+                    synchronized(this) { arr.get(rng.nextInt(arr.getSize())); }
             } else {                               // Access one past the end of the array
                 if(rng.nextInt(2) == 0)
-                    arr.set(arr.getSize(), new Object());
+                    synchronized(this) { arr.set(arr.getSize(), new Object()); }
                 else
-                    arr.get(arr.getSize());
+                    synchronized(this) { arr.get(arr.getSize()); }
             }
         }
     }
@@ -78,6 +79,7 @@ class q1bTester implements Runnable {
 
     // Private variables
     private q1b arr;
+    private AtomicReference<q1b> arrRef;
     private ThreadLocalRandom rng;
     private int k;
     private int m;
@@ -85,6 +87,7 @@ class q1bTester implements Runnable {
     // Basic constructor with shared q1b reference
     public q1bTester(q1b arr, int k, int m) {
         this.arr = arr;
+        this.arrRef = new AtomicReference<q1b>(this.arr);
         this.rng = ThreadLocalRandom.current();
         this.k = k;
         this.m = m;

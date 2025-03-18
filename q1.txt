@@ -1,0 +1,68 @@
+I'll start with the results and then quickly delve into my design for each structure.
+All tests were conducted with 4 threads.
+
+k=15 m=1000
+
+    q1a execution time: 20ms
+    q1b execution time: 16ms
+    
+k=85 m=1000
+
+    q1a execution time: 157ms
+    q1b execution time: 98ms
+
+k=15 m=10000
+
+    q1a execution time: 697ms
+    q1b execution time: 333ms
+
+k=85 m=10000
+
+    q1a execution time: 21058ms
+    q1b execution time: 32088ms
+
+q1a implementation:
+
+    My q1a implementation is very straightforward and requires o(n) data for
+    synchronization. More specifically it requires O(log(n)) ReentrantLocks, where
+    each lock protects a particular segment of the array. I found log base 2 to be
+    a nice balance between performance and memory overheads.
+    
+    The lock for a particular section is acquired when accessing any element in that
+    section, and all locks are acquired when resizing the array. When checking if a
+    get or set is indexed out of bounds, threads synchronize on the q1a object itself.
+    This doesn't prevent modification of individual elements, but does prevent the length
+    from being checked while resizing is occuring.
+
+    This approach performs solidly all around, and is great for extending large arrays
+    as you only have to copy the locks when a new lock is needed, which becomes less
+    frequent as the array grows. There are also only log(n) locks to copy even when
+    this does occur. This is why it manages to outperform q1b in the last test.
+
+q1b implementation:
+
+    My q1b implementation has a few little complexities to it, but shouldn't be too
+    hard to follow. Each object is stored as an AtomicReference<Object>. This array of
+    atomic references is itself stored as an AtomicReference<AtomicReference<Object>[]>
+    That is, I am storing a reference to an array of references, each of which references
+    an object.
+
+    The reason for this silliness is so that I can make my get and set operations appear
+    atomic, even when working with non-primitives, but also so that I can make the array
+    resizing appear atomic. The outermost reference is necessary for the latter, whilst
+    the references inside the array handle the former.
+
+    Getting and setting is pretty trivial with the AtomicReference package, but resizing
+    the array is a little tricky. My resize function will change the entire array itself,
+    meaning that the pointer can be used in the compareAndSet operation to assert That
+    the array was not resized by another threads during the current resize. If a thread
+    fails this compareAndSet it does not try again as the index is now safe for use.
+
+    This approach is miles faster than q1a in most scenarios. It is an elegant solution
+    where nobody needs to be blocked at any point and every action appears atomic. In
+    spite of this, it still has some flaws. The main flaw is that the extend() function
+    for resizing the array is going to take longer as the array grows, which allows more
+    time for other threads to incorrectly conclude that the array needs to be resized.
+    For very large arrays, the threads will often end up extending the array only to
+    realise that they didn't need to and then drop the changes. This wasted computation
+    is why q1b performs so much worse than q1a in the final test.
