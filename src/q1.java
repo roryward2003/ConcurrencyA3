@@ -1,5 +1,4 @@
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicReference;
 
 // Driver class for testing my q1a and q1b implementations
 
@@ -79,7 +78,6 @@ class q1bTester implements Runnable {
 
     // Private variables
     private q1b arr;
-    private AtomicReference<q1b> arrRef;
     private ThreadLocalRandom rng;
     private int k;
     private int m;
@@ -87,7 +85,6 @@ class q1bTester implements Runnable {
     // Basic constructor with shared q1b reference
     public q1bTester(q1b arr, int k, int m) {
         this.arr = arr;
-        this.arrRef = new AtomicReference<q1b>(this.arr);
         this.rng = ThreadLocalRandom.current();
         this.k = k;
         this.m = m;
